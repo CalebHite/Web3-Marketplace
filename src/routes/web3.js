@@ -821,7 +821,7 @@ let contract;
 export async function connectWallet() {
     if (window.ethereum) {
         provider = new ethers.BrowserProvider(window.ethereum);
-        signer = provider.getSigner();
+        signer = await provider.getSigner();
         contract = new ethers.Contract(contractAddress, contractABI, signer);
         accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     } else {
@@ -830,11 +830,31 @@ export async function connectWallet() {
 }
 
 // Initialize IPFS client
-const ipfs = create('https://ipfs.infura.io:5001/api/v0');
+// const ipfs = create('https://ipfs.infura.io:5001/api/v0/c2b094801d344932979761c0f64abe40');
 
+// export async function uploadMetadataToIPFS(metadata) {
+//     try {
+//         const { cid } = await ipfs.add(JSON.stringify(metadata));
+//         return `ipfs://${cid}`; 
+//     } catch (error) {
+//         console.error('Error uploading to IPFS:', error);
+//         return null;
+//     }
+// }
 export async function uploadMetadataToIPFS(metadata) {
     try {
-        const { cid } = await ipfs.add(JSON.stringify(metadata));
+        const auth = "Basic c2b094801d344932979761c0f64abe40:NyP6nFovFXPOwXZ/0N868lCje6DySG7UiKMZLtCr/BzHvD1Vpe+jBA";   
+        const client = create({
+            host: "ipfs.infura.io",
+            port: 5001,
+            protocol: "https",
+            headers: {
+                authorization: auth,
+            },
+        });
+        const cid = client.add(JSON.stringify(metadata)).then((res) => {
+            console.log(res);
+        });
         return `ipfs://${cid}`;
     } catch (error) {
         console.error('Error uploading to IPFS:', error);
@@ -852,7 +872,7 @@ export async function createListing(price, title, description, image) {
 
     const ipfsHash = await uploadMetadataToIPFS(metadata);
     if (ipfsHash) {
-        const tx = await contract.createListing(ethers.utils.parseEther(price), ipfsHash);
+        const tx = await contract.createListing(ethers.parseEther(price.toString()), ipfsHash);
         await tx.wait();
         console.log(`Listing created with IPFS hash: ${ipfsHash}`);
         return tx;
